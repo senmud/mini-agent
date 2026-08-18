@@ -7,20 +7,20 @@
 # =============================================================
 
 [default]
-model = deepseek-chat
+model = doubao-seed
 
 # ---------------- 示例一：DeepSeek（默认流式） ----------------
-[model deepseek-chat]
+[model doubao-seed]
 # 接入点：chat/completions 的完整 URL（任何 OpenAI 兼容服务均可）
-endpoint = https://api.deepseek.com/chat/completions
+endpoint = https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions
 # api_key 支持 env:变量名 形式，从环境变量读取，避免密钥写进文件
-api_key = env:DEEPSEEK_API_KEY
+api_key = env:ARK_API_KEY
 # 发给 API 的 model 字段（缺省时用节名 deepseek-chat）
-model = deepseek-chat
+model = doubao-seed-2.0-lite
 # 上下文窗口（token）。会话估算超出时自动丢弃最早的消息；0 = 不限制
-context_size = 64000
+context_size = 128000
 # 采样温度。设为负数或注释掉本行则不发送该参数
-temperature = 0.7
+temperature = 0.3
 # 思考深度：原样作为 reasoning_effort 发送（low/medium/high 等，视服务商而定）
 # 不用则注释掉。注意：部分推理模型（如 OpenAI o 系列）不接受 temperature，
 # 使用这类模型时请把 temperature 注释掉
