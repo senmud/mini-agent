@@ -14,4 +14,13 @@ hids_misses_detail.txt
 hids_badcase_report.md
 hids_answers_st.md
 hids_run_st.log
+hids_answers_st2.md
+hids_run_st2.log
+hids_answers_st3.md
+hids_run_st3.log
+hids_answers_st4.md
+hids_run_st4.log
+hids_prompt_comparison_report_v2.html
+hids_prompt_comparison_report.html
+hids_analysis_report.html
 *.csv
