@@ -26,6 +26,7 @@ make            # 生成 ./mini-agent
 ```sh
 # 1. 复制配置模板并填入你的模型（config.ini 已被 gitignore，不会提交；api_key 推荐 env:变量名 形式）
 cp config.ini.example config.ini
+cp system_prompt.txt.example system_prompt.txt   # 系统提示词，可按需自拟（两者均已被 gitignore）
 export DEEPSEEK_API_KEY=sk-xxxx
 
 # 2. 运行：加载系统提示词 + 批量请求

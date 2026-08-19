@@ -5,6 +5,7 @@ __pycache__/
 
 # 本地数据与运行产物（含敏感告警数据与真实密钥，勿提交）
 config.ini
+system_prompt.txt
 hids_log.txt
 hids_answers.md
 hids_run.log
