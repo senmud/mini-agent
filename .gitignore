@@ -11,4 +11,6 @@ hids_run.log
 hids_summary.csv
 hids_misses_detail.txt
 hids_badcase_report.md
+hids_answers_st.md
+hids_run_st.log
 *.csv

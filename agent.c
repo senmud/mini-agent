@@ -19,6 +19,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <ctype.h>
+#include <getopt.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -550,6 +551,19 @@ static void msgs_push(msgs *ms, const char *role, const char *content)
     ms->items[ms->n].role = strdup(role);
     ms->items[ms->n].content = strdup(content);
     ms->n++;
+}
+
+/* single-turn 模式用：丢弃全部非 system 消息，使每条请求的上下文相互独立 */
+static void msgs_reset_to_system(msgs *ms)
+{
+    size_t i = 0;
+    while (i < ms->n && strcmp(ms->items[i].role, "system") == 0)
+        i++;
+    for (size_t j = i; j < ms->n; j++) {
+        free(ms->items[j].role);
+        free(ms->items[j].content);
+    }
+    ms->n = i;
 }
 
 static void msgs_free(msgs *ms)
@@ -1104,6 +1118,8 @@ static void usage(int code)
         "  -s FILE   系统提示词文件          (可选)\n"
         "  -r FILE   批量用户请求文件        (必填；请求以 3 个换行符分隔)\n"
         "  -n        演练模式：只打印将发送的请求 JSON，不发起网络请求\n"
+        "  --single-turn  单轮模式：每条请求使用独立上下文（仅 system + 当前请求），\n"
+        "                 适用于批量评估等需要避免多轮相互影响的场景\n"
         "  -v        打印请求体等调试信息\n"
         "  -h        显示本帮助\n"
         "\n"
@@ -1124,10 +1140,14 @@ int main(int argc, char **argv)
 {
     const char *cfg_path = "config.ini";
     const char *sys_path = NULL, *req_path = NULL, *use_model = NULL;
-    int dry_run = 0, verbose = 0;
+    int dry_run = 0, verbose = 0, single_turn = 0;
     int opt;
+    static const struct option long_opts[] = {
+        {"single-turn", no_argument, NULL, 1001},
+        {NULL, 0, NULL, 0}
+    };
 
-    while ((opt = getopt(argc, argv, "c:m:s:r:nvh")) != -1) {
+    while ((opt = getopt_long(argc, argv, "c:m:s:r:nvh", long_opts, NULL)) != -1) {
         switch (opt) {
         case 'c': cfg_path = optarg; break;
         case 'm': use_model = optarg; break;
@@ -1135,6 +1155,7 @@ int main(int argc, char **argv)
         case 'r': req_path = optarg; break;
         case 'n': dry_run = 1; break;
         case 'v': verbose = 1; break;
+        case 1001: single_turn = 1; break;
         case 'h': usage(0); break;
         default:  usage(1);
         }
@@ -1162,8 +1183,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "模型 '%s' 未配置 endpoint\n", m->name);
         return 1;
     }
-    fprintf(stderr, "[mini-agent] 模型=%s  endpoint=%s  stream=%s\n",
-            m->name, m->endpoint, m->stream ? "开" : "关");
+    fprintf(stderr, "[mini-agent] 模型=%s  endpoint=%s  stream=%s  上下文=%s\n",
+            m->name, m->endpoint, m->stream ? "开" : "关",
+            single_turn ? "单轮独立" : "多轮累积");
 
     /* 2. 系统提示词（可选） */
     msgs history = {0};
@@ -1202,6 +1224,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "\n──────── 请求 %zu/%zu ────────\n", i + 1, nreq);
         print_preview(reqs[i]);
         fprintf(stderr, "──────── 回答 ────────\n");
+
+        if (single_turn)
+            msgs_reset_to_system(&history); /* 独立上下文：仅保留 system + 当前请求 */
 
         msgs_push(&history, "user", reqs[i]);
         trim_to_context(&history, m->context_size);

@@ -14,8 +14,11 @@ import re
 import sys
 from collections import Counter
 
-# 每条答案的起始标题（与模型实际输出格式一致）
-ANSWER_START = re.compile(r"^### 事件性质判断", re.M)
+# 每条答案的起始标题（兼容多种变体："### 1. 事件性质判断"、
+# "### 一、事件性质判定"、"### 事件性质判断" 等，单轮/多轮模式格式不同）
+ANSWER_START = re.compile(
+    r"^#{2,3}\s*(?:\d+[\.、]\s*|[一二三四五六七八九十]+[、\.]\s*)?事件性质(?:判断|判定)",
+    re.M)
 
 
 def split_answers(text):
@@ -24,11 +27,18 @@ def split_answers(text):
 
 
 def extract_conclusion(answer):
-    """提取『### 判断结论』到下一个 '### ' 标题之间的文本，压成一行"""
-    m = re.search(r"### 判断结论\s*\n(.*?)(?=\n### |\Z)", answer, re.S)
-    if not m:
-        return ""
-    return " ".join(line.strip() for line in m.group(1).strip().splitlines())
+    """提取结论段，兼容：'### 3. 判断结论与推导逻辑'、'### 三、判断结论'、
+    '### 2. 分析与结论'、'#### 结论：...' 等变体；压成一行"""
+    # 优先找包含「结论」的标题段（到下一个同级及以上标题为止）
+    m = re.search(r"^#{2,4}[^\n]*结论[^\n]*\n(.*?)(?=^#{2,3}\s|\Z)",
+                  answer, re.M | re.S)
+    body = m.group(1) if m else answer
+    # 去掉段内的「推导逻辑」及其后内容（可能在 #### 子标题或行首）
+    body = re.split(r"^#{2,4}[^\n]*推导|^\s*推导逻辑", body, maxsplit=1, flags=re.M)[0]
+    txt = " ".join(line.strip() for line in body.strip().splitlines() if line.strip())
+    # 去掉行首的"结论："前缀与 markdown 加粗，便于后续匹配
+    txt = re.sub(r"^[#>*\s]*结论[：:]?\s*", "", txt)
+    return txt.replace("**", "")
 
 
 def classify(concl):
